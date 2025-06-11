@@ -7,54 +7,50 @@ echo "🚀 Starting Aurifi deployment..."
 # Load environment variables
 if [ ! -f .env ]; then
     echo "❌ Error: .env file not found!"
-    echo "📝 Please copy .env.example to .env and configure it"
     exit 1
 fi
 
 source .env
 
-# Validate required variables
-required_vars=("MONGO_URI" "SECRET_KEY" "FRONTEND_REPO" "BACKEND_REPO")
-for var in "${required_vars[@]}"; do
-    if [ -z "${!var}" ]; then
-        echo "❌ Error: $var is not set in .env"
-        exit 1
-    fi
-done
+echo "🧹 Cleaning up existing containers and images..."
+docker compose down --remove-orphans
+docker system prune -f
 
-echo "📦 Cloning/updating repositories..."
+echo "📦 Updating repositories..."
 
-# Clone or update frontend
-if [ ! -d "frontend" ]; then
-    echo "Cloning frontend repository..."
-    git clone $FRONTEND_REPO frontend
-else
-    echo "Updating frontend repository..."
-    cd frontend && git pull origin main && cd ..
-fi
+# Remove existing directories to ensure clean state
+sudo rm -rf frontend backend
 
-# Clone or update backend
-if [ ! -d "backend" ]; then
-    echo "Cloning backend repository..."
-    git clone $BACKEND_REPO backend
-else
-    echo "Updating backend repository..."
-    cd backend && git pull origin main && cd ..
-fi
+# Clone repositories
+echo "Cloning frontend repository..."
+git clone $FRONTEND_REPO frontend
+
+echo "Cloning backend repository..."
+git clone $BACKEND_REPO backend
+
+# Create frontend .env file with correct API URL
+echo "Setting up frontend environment..."
+cat > frontend/.env << EOF
+VITE_API_URL=http://165.22.214.208/api/v1
+NODE_ENV=production
+EOF
 
 echo "🔨 Building and starting services..."
-
-# Stop existing services
-docker compose down --remove-orphans
-
-# Build and start services
 docker compose up -d --build
 
-echo "🧹 Cleaning up..."
-docker image prune -f
+echo "⏳ Waiting for services to start..."
+sleep 30
 
 echo "📊 Service status:"
 docker compose ps
 
+echo "🔍 Testing API endpoints..."
+echo "Testing user endpoint:"
+curl -I http://165.22.214.208/api/v1/user/
+
+echo "Testing auth endpoint:"
+curl -I http://165.22.214.208/api/v1/auth/
+
 echo "✅ Deployment completed!"
-echo "🌐 Access your application at: http://165.22.214.208"
+echo "🌐 Frontend: http://165.22.214.208"
+echo "🔗 API Base: http://165.22.214.208/api/v1"

@@ -5,10 +5,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
-      - VITE_API_URL=${API_URL}
+      - VITE_API_URL=http://165.22.214.208/api/v1
     restart: unless-stopped
     networks:
       - app-network
