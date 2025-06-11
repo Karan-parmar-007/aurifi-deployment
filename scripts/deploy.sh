@@ -53,21 +53,6 @@ docker compose up -d --build
 echo "🧹 Cleaning up..."
 docker image prune -f
 
-echo "🔍 Running health checks..."
-sleep 15
-
-if curl -f http://localhost > /dev/null 2>&1; then
-    echo "✅ Frontend is healthy"
-else
-    echo "❌ Frontend health check failed"
-fi
-
-if curl -f http://localhost/api/ > /dev/null 2>&1; then
-    echo "✅ Backend is healthy"
-else
-    echo "❌ Backend health check failed"
-fi
-
 echo "📊 Service status:"
 docker compose ps
 

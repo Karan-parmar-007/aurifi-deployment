@@ -5,7 +5,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-5173}:5173"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - VITE_API_URL=${API_URL}
@@ -23,25 +23,9 @@ services:
     environment:
       - FLASK_ENV=${FLASK_ENV:-production}
       - MONGO_URI=${MONGO_URI}
-      - MONGO_DBNAME=${MONGO_DBNAME}
+      - MONGO_DBNAME=${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS}
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      - mongodb
-
-  mongodb:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGO_DBNAME}
-    volumes:
-      - mongodb_data:/data/db
     restart: unless-stopped
     networks:
       - app-network
@@ -64,6 +48,3 @@ services:
 networks:
   app-network:
     driver: bridge
-
-volumes:
-  mongodb_data:
