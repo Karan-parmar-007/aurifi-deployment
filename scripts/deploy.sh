@@ -12,44 +12,39 @@ fi
 
 source .env
 
-echo "🧹 Cleaning up existing containers and images..."
-docker compose down --remove-orphans
-docker system prune -f
+echo "🛑 Stopping existing services..."
+docker compose down
 
-echo "📦 Updating repositories..."
+echo "📥 Pulling latest images..."
+docker pull ${DOCKERHUB_USERNAME}/aurifi-frontend:latest
+docker pull ${DOCKERHUB_USERNAME}/aurifi-backend:latest
 
-# Remove existing directories to ensure clean state
-sudo rm -rf frontend backend
+echo "🧹 Cleaning up old images..."
+docker image prune -f
 
-# Clone repositories
-echo "Cloning frontend repository..."
-git clone $FRONTEND_REPO frontend
-
-echo "Cloning backend repository..."
-git clone $BACKEND_REPO backend
-
-# Create frontend .env file with correct API URL
-echo "Setting up frontend environment..."
-cat > frontend/.env << EOF
-VITE_API_URL=http://165.22.214.208/api/v1
-NODE_ENV=production
-EOF
-
-echo "🔨 Building and starting services..."
-docker compose up -d --build
+echo "🚀 Starting services with new images..."
+docker compose up -d
 
 echo "⏳ Waiting for services to start..."
 sleep 30
 
+echo "🔍 Health checks..."
+if curl -f http://localhost > /dev/null 2>&1; then
+    echo "✅ Frontend is healthy"
+else
+    echo "❌ Frontend health check failed"
+    docker compose logs frontend
+fi
+
+if curl -f http://localhost/api/v1/auth/ > /dev/null 2>&1; then
+    echo "✅ Backend is healthy"
+else
+    echo "❌ Backend health check failed"
+    docker compose logs backend
+fi
+
 echo "📊 Service status:"
 docker compose ps
-
-echo "🔍 Testing API endpoints..."
-echo "Testing user endpoint:"
-curl -I http://165.22.214.208/api/v1/user/
-
-echo "Testing auth endpoint:"
-curl -I http://165.22.214.208/api/v1/auth/
 
 echo "✅ Deployment completed!"
 echo "🌐 Frontend: http://165.22.214.208"
