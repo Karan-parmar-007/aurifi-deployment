@@ -9,6 +9,9 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    labels:
+      - "traefik.enable=true"
+      - "service=frontend"
 
   backend:
     image: ${DOCKERHUB_USERNAME}/aurifi-backend:latest
@@ -23,6 +26,9 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    labels:
+      - "traefik.enable=true" 
+      - "service=backend"
 
   nginx:
     image: nginx:alpine
@@ -31,13 +37,14 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - frontend
       - backend
     restart: unless-stopped
     networks:
       - app-network
+    labels:
+      - "service=nginx"
 
 networks:
   app-network:

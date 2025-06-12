@@ -1,0 +1,115 @@
+name: Full Stack Deployment
+
+on:
+  push:
+    branches: [ master, main ]
+
+jobs:
+  full-deployment:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Full Stack Deployment
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        passphrase: ${{ secrets.SSH_PASSPHRASE }}
+        script: |
+          cd /opt/aurifi
+          
+          echo "🚀 Starting Full Stack Deployment from deployment repo..."
+          echo "⚠️  This will completely refresh both frontend and backend"
+          
+          # Update deployment files from git
+          echo "📦 Updating deployment configuration..."
+          git pull origin main || git pull origin master
+          
+          echo "🛑 Stopping all services..."
+          docker compose down --remove-orphans
+          
+          echo "🧹 Removing old containers and images..."
+          docker container prune -f
+          docker image prune -a -f
+          
+          echo "📥 Pulling latest images..."
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/aurifi-frontend:latest
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/aurifi-backend:latest
+          docker pull nginx:alpine
+          
+          echo "🔨 Starting fresh deployment..."
+          docker compose up -d
+          
+          echo "⏳ Waiting for services to initialize..."
+          sleep 30
+          
+          echo "📊 Service status:"
+          docker compose ps
+          
+          echo "🔍 Running health checks..."
+          
+          # Wait for services to be ready
+          echo "Waiting for frontend..."
+          for i in {1..30}; do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "✅ Frontend is ready"
+              break
+            fi
+            echo -n "."
+            sleep 2
+          done
+          
+          echo "Waiting for backend..."
+          for i in {1..30}; do
+            if curl -f http://localhost:5000/api/v1/user/ > /dev/null 2>&1; then
+              echo "✅ Backend is ready"
+              break
+            fi
+            echo -n "."
+            sleep 2
+          done
+          
+          echo "Waiting for nginx..."
+          for i in {1..20}; do
+            if curl -f http://localhost > /dev/null 2>&1; then
+              echo "✅ Nginx is ready"
+              break
+            fi
+            echo -n "."
+            sleep 2
+          done
+          
+          echo ""
+          echo "🔍 Final connectivity tests:"
+          
+          # Test frontend via nginx
+          if curl -I http://localhost/ > /dev/null 2>&1; then
+            echo "✅ Frontend accessible via nginx"
+          else
+            echo "❌ Frontend test failed"
+          fi
+          
+          # Test backend API via nginx
+          if curl -I http://localhost/api/v1/user/ > /dev/null 2>&1; then
+            echo "✅ Backend API accessible via nginx"
+          else
+            echo "❌ Backend API test failed"
+          fi
+          
+          echo ""
+          echo "📋 Final service status:"
+          docker compose ps
+          
+          echo ""
+          echo "📊 Container resource usage:"
+          docker stats --no-stream
+          
+          echo ""
+          echo "🎉 Full stack deployment completed!"
+          echo "🌐 Frontend: http://165.22.214.208"
+          echo "🔗 Backend API: http://165.22.214.208/api/v1"
+          echo "📅 Deployed at: $(date)"
