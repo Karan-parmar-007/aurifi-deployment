@@ -23,6 +23,8 @@ services:
       - MONGO_DBNAME=${DB_NAME}
       - SECRET_KEY=${SECRET_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS}
+    volumes:
+      - ./datasets:/app/datasets  # Add this line to persist datasets
     restart: unless-stopped
     networks:
       - app-network
